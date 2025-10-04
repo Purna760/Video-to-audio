@@ -1,57 +1,36 @@
 import streamlit as st
-import os
-import tempfile
 from moviepy.editor import VideoFileClip
+import tempfile
+import os
 
-# Task 1: Upload a video
-st.title("Audio Extractor from Video")
-st.write("Upload a video file (e.g., MP4) to extract its audio.")
-uploaded_file = st.file_uploader("Choose a video file...", type=["mp4", "avi", "mov"])
+st.set_page_config(page_title="MoviePy Video Editor", page_icon="🎬", layout="wide")
+
+st.title("🎬 MoviePy Video Editor on Streamlit")
+
+uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi", "mkv"])
 
 if uploaded_file is not None:
-    # Save the uploaded file to a temporary location
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_video_file:
-        tmp_video_file.write(uploaded_file.read())
-        video_path = tmp_video_file.name
+    # Save uploaded video to a temporary file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
+        tmp_file.write(uploaded_file.read())
+        temp_video_path = tmp_file.name
 
-    st.video(uploaded_file)
-    st.success("Video uploaded successfully!")
+    st.video(temp_video_path)
 
-    # Task 2: Extract audio
-    if st.button("Extract Audio"):
-        try:
-            # Create a temporary file for the extracted audio
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_audio_file:
-                audio_path = tmp_audio_file.name
+    st.subheader("✂️ Trim Video")
+    start_time = st.number_input("Start time (seconds)", min_value=0, value=0)
+    end_time = st.number_input("End time (seconds)", min_value=10, value=10)
 
-            # Use moviepy to extract audio
-            with VideoFileClip(video_path) as video_clip:
-                audio_clip = video_clip.audio
-                audio_clip.write_audiofile(audio_path)
-            
-            st.success("Audio extracted successfully!")
+    if st.button("Trim and Download"):
+        clip = VideoFileClip(temp_video_path).subclip(start_time, end_time)
 
-            # Task 3: Download audio
-            st.write("---")
-            st.subheader("Download the Extracted Audio")
-            
-            # Read the audio file as bytes
-            with open(audio_path, "rb") as f:
-                audio_bytes = f.read()
+        output_path = "output.mp4"
+        clip.write_videofile(output_path, codec="libx264", audio_codec="aac")
 
-            st.download_button(
-                label="Download Audio as MP3",
-                data=audio_bytes,
-                file_name="extracted_audio.mp3",
-                mime="audio/mpeg"
-            )
+        with open(output_path, "rb") as file:
+            st.download_button("⬇️ Download Edited Video", file, file_name="edited_video.mp4")
 
-        except Exception as e:
-            st.error(f"An error occurred during extraction: {e}")
+        clip.close()
 
-        finally:
-            # Clean up the temporary video and audio files
-            if 'video_path' in locals() and os.path.exists(video_path):
-                os.remove(video_path)
-            if 'audio_path' in locals() and os.path.exists(audio_path):
-                os.remove(audio_path)
+    # Cleanup
+    os.remove(temp_video_path)
