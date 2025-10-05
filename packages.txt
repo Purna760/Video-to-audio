@@ -1,1 +1,3 @@
-ffmpeg
+streamlit
+moviepy
+ffmpeg-python
